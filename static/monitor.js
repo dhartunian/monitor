@@ -18,19 +18,39 @@ var y = d3.scale.linear()
 var x_axis = d3.svg.axis().scale(x).orient("bottom");
 var y_axis = d3.svg.axis().scale(y).orient("left");
 
+var high_load_state = false;
+
 function get_load() {
     d3.json("/load.json", function (error, root) {
         root.timestamp = time_parser(root.timestamp);
         data.push(root);
-	if (data.length > 60) {
-	    data = data.slice(1, 61);
+	if (data.length > 120) {
+	    data.shift();
 	}
-        x.domain(d3.extent(data, function (d) { return d.timestamp; }));
+	var load_last_2min = d3.mean(data.slice(-12), function (d) { return d.load; }); 
+	if (high_load_state === false && 
+	    data.length >= 60 && 
+	    load_last_2min >= 1) {
+	  d3.select(".alerts")
+	    .insert("div", ":first-child")
+	    .text("High load generated an alert - load = " + root.load + ", triggered at " + root.timestamp);
+	  high_load_state = true;
+	}
+	if (high_load_state === true && 
+	    data.length >= 60 && 
+	    load_last_2min < 1) {
+	  d3.select(".alerts")
+	    .insert("div", ":first-child")
+	    .text("Recovered from high load period - load = " + root.load + ", triggered at " + root.timestamp);
+	  high_load_state = false;
+	}
+
+        x.domain(d3.extent(data.slice(-60), function (d) { return d.timestamp; }));
         y.domain(d3.extent(data, function (d) { return d.load; }));
 
 	d3.select("svg").remove();
 
-	var svg = d3.select("body").append("svg")
+	var svg = d3.select(".graph").append("svg")
 	    .attr("width", width + margin.left + margin.right)
 	    .attr("height", height + margin.top + margin.bottom)
 	    .append("g")
@@ -48,7 +68,7 @@ function get_load() {
 	    .attr("class", "y axis")
             .call(y_axis);
         svg.append("path")
-            .datum(data)
+            .datum(data.slice(-60))
 	    .attr("class", "line")
             .attr("d", line);
     });
