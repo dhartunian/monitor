@@ -22,6 +22,9 @@ function get_load() {
     d3.json("/load.json", function (error, root) {
         root.timestamp = time_parser(root.timestamp);
         data.push(root);
+	if (data.length > 60) {
+	    data = data.slice(1, 61);
+	}
         x.domain(d3.extent(data, function (d) { return d.timestamp; }));
         y.domain(d3.extent(data, function (d) { return d.load; }));
 
@@ -54,5 +57,5 @@ function get_load() {
 setInterval( function() {
     get_load();
     console.log("added data");
-}, 1000);
+}, 250);
 
