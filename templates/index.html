@@ -148,40 +148,88 @@
         }
     }
 
-    function average_load_alert(threshold, lookback) {
+    function average_load_alert(threshold, lookback, 
+				high_load_fn, recovery_fn) {
 	var high_load_state = false;
 	return function alert_generator(data) {
 	    var data_mean = d3.mean(data.slice(-lookback), function(d) { return d.load; });
-	    var last_element = data[data.length - 1];
 	    if (high_load_state === true &&
 	        data_mean < threshold) {
 		high_load_state = false;
-		d3.select(".alerts")
-		  .insert("div", ":first-child")
-		  .attr("class", "recovery")
-		  .text("Recovered from high load period - load = " + 
-			last_element.load +
-			", triggered at " +
-			last_element.timestamp);
+		recovery_fn(data);
             }
 	    if (high_load_state === false &&
 		data_mean > threshold) {
 		high_load_state = true;
-		d3.select(".alerts")
-		  .insert("div", ":first-child")
-		  .attr("class", "alert")
-		  .text("High load generated an alert - load = " + 
-			last_element.load +
-			", triggered at " +
-			last_element.timestamp);
+		high_load_fn(data);
             }
         };
     }
 
+    function high_load_visual(data) {
+	var last_element = data[data.length - 1];
+	d3.select(".alerts")
+	    .insert("div", ":first-child")
+	    .attr("class", "alert")
+	    .text("High load generated an alert - load = " + 
+		  last_element.load +
+		  ", triggered at " +
+		  last_element.timestamp);
+    }
+
+    function recovery_visual(data) {
+	var last_element = data[data.length - 1];
+	d3.select(".alerts")
+	    .insert("div", ":first-child")
+	    .attr("class", "recovery")
+	    .text("Recovered from high load period - load = " + 
+		  last_element.load +
+		  ", triggered at " +
+		  last_element.timestamp);
+    }   
+
     load_graph(500, 150, 0.25, 120, 
-	       average_load_alert(1, 30));
+	       average_load_alert(1, 30, 
+				  high_load_visual, 
+				  recovery_visual));
     load_graph(500, 150, 1, 120);
     load_graph(500, 150, 10, 60);
+
+    //TESTING CODE FOLLOWS
+    function high_load_console(data) { console.debug("High Load"); }
+    function recovery_console(data) { console.debug("Recovered from high load"); }
+
+
+    //run this function in the console: test_alert_logic();
+    //to see some expected and actual outputs
+    function test_alert_logic() {
+	var ala_1 = average_load_alert(1, 3, 
+				       high_load_console, 
+				       recovery_console),
+	    ala_10 = average_load_alert(10, 3, 
+					high_load_console, 
+					recovery_console),
+	    data = [],
+	    i;
+
+	for (i = 0; i < 10; i++) {
+	    data.push({'load': 10,
+		       'timestamp': new Date(Date.now())});
+        }
+
+	console.debug("Expect: High Load");
+	ala_1(data);
+	console.debug("Expect: <Nothing>");
+	ala_10(data);
+
+	for (i = 0; i < 4; i++) {
+	    data.push({'load': 0.9,
+		       'timestamp': new Date(Date.now())});
+        }
+
+	console.debug("Expect: Recovered");
+	ala_1(data);
+    };
 
     </script>
 
