@@ -199,7 +199,7 @@
     load_graph(500, 150, 10, 60,
 	       average_load_alert(1, 200,
 				  high_load_visual,
-				  recovery_visual);
+				  recovery_visual));
 
     //TESTING CODE FOLLOWS
     function high_load_console(data) { console.debug("High Load"); }
@@ -234,6 +234,14 @@
         }
 
 	console.debug("Expect: Recovered");
+	ala_1(data);
+
+	for (i = 0; i < 4; i++) {
+	    data.push({'load': 1.001,
+		       'timestamp': new Date(Date.now())});
+	}
+
+	console.debug("Expect: High Load");
 	ala_1(data);
     };
 
