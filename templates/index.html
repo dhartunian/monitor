@@ -20,16 +20,25 @@
 	font-weight: normal;
 	font-color: black;
     }
+    .alert { 
+	margin: 5px;
+	padding:5px;
+	background-color: pink; 
+    }
+    .recovery { 
+	margin: 5px;
+	padding: 5px;
+	background-color: lightgreen; 
+    }
     </style>
   </head>
   <body>
     <script src="http://d3js.org/d3.v3.js"></script>
     <script>
-    var high_load_state = false;
-
     function load_graph(width_in, height_in, 
                         seconds_between_samples, 
-                        number_of_samples_in_graph) {
+                        number_of_samples_in_graph,
+		        alert_function) {
 
         var data = [],
             duration = seconds_between_samples * 1000;
@@ -53,7 +62,7 @@
         //init data
         var i = 0;
         for (i = 0; i < n; i++) {
-            data[i] = {'load': 1,
+            data[i] = {'load': 0,
                        'timestamp': new Date(Date.now() - (n - i) * duration) }
         }
 
@@ -69,7 +78,7 @@
             .domain(d3.extent(data, function (d) { return d.timestamp; }))
             .range([0, width]);
         var y = d3.scale.linear()
-            .domain([0, d3.max(data, function (d) { return d.load; })])
+            .domain([0, 1])
             .range([height, 0]);
 
         var line = d3.svg.line()
@@ -116,6 +125,9 @@
             d3.json("/load.json", function(error, root) {
                 root.timestamp = time_parser(root.timestamp);
                 data.push(root);
+		if (alert_function) {
+		    alert_function(data);
+		}
 
                 x.domain(d3.extent(data, function(d) { return d.timestamp; }));
                 y.domain([0, d3.max(data, function(d) { return d.load; })]);
@@ -136,10 +148,43 @@
         }
     }
 
-    load_graph(500, 150, 0.25, 120);
+    function average_load_alert(threshold, lookback) {
+	var high_load_state = false;
+	return function alert_generator(data) {
+	    var data_mean = d3.mean(data.slice(-lookback), function(d) { return d.load; });
+	    var last_element = data[data.length - 1];
+	    if (high_load_state === true &&
+	        data_mean < threshold) {
+		high_load_state = false;
+		d3.select(".alerts")
+		  .insert("div", ":first-child")
+		  .attr("class", "recovery")
+		  .text("Recovered from high load period - load = " + 
+			last_element.load +
+			", triggered at " +
+			last_element.timestamp);
+            }
+	    if (high_load_state === false &&
+		data_mean > threshold) {
+		high_load_state = true;
+		d3.select(".alerts")
+		  .insert("div", ":first-child")
+		  .attr("class", "alert")
+		  .text("High load generated an alert - load = " + 
+			last_element.load +
+			", triggered at " +
+			last_element.timestamp);
+            }
+        };
+    }
+
+    load_graph(500, 150, 0.25, 120, 
+	       average_load_alert(1, 30));
     load_graph(500, 150, 1, 120);
     load_graph(500, 150, 10, 60);
+
     </script>
+
     <div class="alerts"></div>
   </body>
 </html>
