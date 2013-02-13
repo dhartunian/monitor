@@ -31,8 +31,6 @@
 	background-color: lightgreen; 
     }
     </style>
-  </head>
-  <body>
     <script src="http://d3js.org/d3.v3.js"></script>
     <script>
     function load_graph(width_in, height_in, 
@@ -157,6 +155,10 @@
 	}
     }
 
+
+    //check is we've crossed the threshold over the lookback period
+    //and calls high_load_fn or recovery_fn depending on whether we
+    //entered a high load state or came out of it
     function average_load_alert(threshold, lookback, 
 				high_load_fn, recovery_fn) {
 	var high_load_state = false;
@@ -198,18 +200,9 @@
 		  last_element.timestamp);
     }   
 
-    //this code creates all three graphs and adds the load alert logic to one of them
-    load_graph(500, 150, 0.25, 120);
-    load_graph(500, 150, 1, 120);
-    load_graph(500, 150, 10, 60,
-	       average_load_alert(1, 12,
-				  high_load_visual,
-				  recovery_visual));
-
     //TESTING CODE FOLLOWS
     function high_load_console(data) { console.debug("High Load"); }
     function recovery_console(data) { console.debug("Recovered from high load"); }
-
 
     //run this function in the console: test_alert_logic();
     //to see some expected and actual outputs
@@ -257,6 +250,25 @@
 
     };
 
+    </script>
+  </head>
+  <body>
+
+    <script>
+    //this code creates all three graphs and adds the load alert logic to one of them
+
+    //poll every 0.25 sec, show 30 sec history
+    load_graph(500, 150, 0.25, 120);
+
+    //poll every 1 sec, show 2 min history
+    load_graph(500, 150, 1, 120);
+
+    //poll every 10 sec, show 10 min history
+    //include load alert function to check for an alert with each update
+    load_graph(500, 150, 10, 60,
+	       average_load_alert(1, 12,
+				  high_load_visual,
+				  recovery_visual));
     </script>
 
     <div class="alerts"></div>
