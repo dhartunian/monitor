@@ -60,11 +60,11 @@
         }
 
         //init data
-        var i = 0;
-        for (i = 0; i < n; i++) {
-            data[i] = {'load': 0,
-                       'timestamp': new Date(Date.now() - (n - i) * duration) }
-        }
+        //var i = 0;
+        //for (i = 0; i < n; i++) {
+        //    data[i] = {'load': false,
+        //               'timestamp': new Date(Date.now() - (n - i) * duration) }
+        //}
 
         var margin = {top: 20,
                       right: 20,
@@ -121,36 +121,40 @@
             .data([data])
             .attr("class","line");
 
-        advance();
+        advance(n, duration)();
 
-        function advance() {
-            d3.json("/load.json", function(error, root) {
-                root.timestamp = time_parser(root.timestamp);
-                data.push(root);
-		if (alert_function) {
-		    alert_function(data);
-		}
+        function advance(n, duration) {
+	    return function adv() {
+		d3.json("/load.json", function(error, root) {
+		    root.timestamp = time_parser(root.timestamp);
+		    data.push(root);
+		    if (alert_function) {
+			alert_function(data);
+		    }
 
-                x.domain(d3.extent(data, 
-				   function(d) { return d.timestamp; }));
-                y.domain([0, d3.max(data, 
-				    function(d) { return d.load; })]);
+		    x.domain(d3.extent(data, 
+				       function(d) { return d.timestamp; }));
+		    y.domain([0, d3.max(data, 
+					function(d) { return d.load; })]);
 
-                x_axis_g.transition().duration(duration).ease("linear").call(x_axis);
-                y_axis_g.transition().duration(duration).ease("linear").call(y_axis);
+		    x_axis_g.transition().duration(duration).ease("linear").call(x_axis);
+		    y_axis_g.transition().duration(duration).ease("linear").call(y_axis);
 
-                path.attr("d", line)
-                    .attr("transform", null)
-                    .transition()
-                    .duration(duration)
-                    .ease("linear")
-                    .attr("transform", "translate(" + 
-			  x(data[0].timestamp - duration) + ")")
-                    .each("end", advance);
+		    path.attr("d", line)
+			.attr("transform", null)
+			.transition()
+			.duration(duration)
+			.ease("linear")
+			.attr("transform", "translate(" + 
+			      x(data[0].timestamp - duration) + ")")
+			.each("end", advance(n, duration));
 
-                data.shift();
-            })
-        }
+		    if (data.length > n) {
+			data.shift();
+		    }
+		})
+            }
+	}
     }
 
     function average_load_alert(threshold, lookback, 
