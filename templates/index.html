@@ -39,9 +39,9 @@
 		        alert_function) {
 
         var data = [],
-            duration = seconds_between_samples * 1000;
+            duration = seconds_between_samples * 1000,
             n = number_of_samples_in_graph,
-            total_seconds = n * seconds_between_samples;
+            total_seconds = n * seconds_between_samples,
             now = new Date(Date.now() - duration),
             time_parser = d3.time.format.iso.parse;
 
@@ -57,17 +57,10 @@
                           seconds_between_samples + " sec)";
         }
 
-        //init data
-        //var i = 0;
-        //for (i = 0; i < n; i++) {
-        //    data[i] = {'load': false,
-        //               'timestamp': new Date(Date.now() - (n - i) * duration) }
-        //}
-
         var margin = {top: 20,
                       right: 20,
                       bottom: 30,
-                      left: 50}
+                      left: 50};
 
         var width = width_in - margin.left - margin.right;
         var height = height_in - margin.top - margin.bottom;
@@ -119,10 +112,9 @@
             .data([data])
             .attr("class","line");
 
-        advance(n, duration)();
+        advance();
 
-        function advance(n, duration) {
-	    return function adv() {
+        function advance() {
 		d3.json("/load.json", function(error, root) {
 		    root.timestamp = time_parser(root.timestamp);
 		    data.push(root);
@@ -145,13 +137,12 @@
 			.ease("linear")
 			.attr("transform", "translate(" + 
 			      x(data[0].timestamp - duration) + ")")
-			.each("end", advance(n, duration));
+			.each("end", advance);
 
 		    if (data.length > n) {
 			data.shift();
 		    }
-		})
-            }
+		});
 	}
     }
 
@@ -163,17 +154,19 @@
 				high_load_fn, recovery_fn) {
 	var high_load_state = false;
 	return function alert_generator(data) {
-	    var data_mean = d3.mean(data.slice(-lookback), 
-				    function(d) { return d.load; });
-	    if (high_load_state === true &&
-	        data_mean < threshold) {
-		high_load_state = false;
-		recovery_fn(data);
-            }
-	    if (high_load_state === false &&
-		data_mean > threshold) {
-		high_load_state = true;
-		high_load_fn(data);
+            if (data.length >= lookback) {
+		var data_mean = d3.mean(data.slice(-lookback), 
+					function(d) { return d.load; });
+		if (high_load_state === true &&
+		    data_mean < threshold) {
+		    high_load_state = false;
+		    recovery_fn(data);
+		}
+		if (high_load_state === false &&
+		    data_mean > threshold) {
+		    high_load_state = true;
+		    high_load_fn(data);
+		}
             }
         };
     }
@@ -214,7 +207,7 @@
 					high_load_console, 
 					recovery_console),
 	    data = [],
-	    i;
+	    i = 0;
 
 	for (i = 0; i < 10; i++) {
 	    data.push({'load': 10,
@@ -247,9 +240,7 @@
 	    data.push({'load': 1.001,
 		       'timestamp': new Date(Date.now())});
 	}
-
     };
-
     </script>
   </head>
   <body>
